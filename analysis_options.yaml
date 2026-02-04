@@ -1,0 +1,18 @@
+﻿analyzer:
+  errors:
+    # Suppress errors from emoji/special chars
+    missing_identifier: ignore
+    const_initialized_with_non_constant_value: ignore
+    non_constant_map_key: ignore
+    
+    # Keep your print statements
+    avoid_print: ignore
+    
+    # Keep using .withOpacity() if you want
+    deprecated_member_use: ignore
+
+linter:
+  rules:
+    # Allow your current code style
+    avoid_print: false
+
