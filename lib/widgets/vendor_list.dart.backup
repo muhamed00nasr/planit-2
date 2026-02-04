@@ -1,0 +1,238 @@
+import 'package:flutter/material.dart';
+import '../data/mock_vendors.dart';
+import '../models/vendor.dart';
+
+class VendorList extends StatefulWidget {
+  final String? serviceType;
+
+  const VendorList({super.key, this.serviceType});
+
+  @override
+  State<VendorList> createState() => _VendorListState();
+}
+
+class _VendorListState extends State<VendorList> {
+  String searchQuery = '';
+  String location = 'all';
+  double budget = 50000;
+
+  List<Vendor> get filteredVendors {
+    return mockVendors.where((vendor) {
+      final matchesSearch = vendor.name.toLowerCase().contains(searchQuery.toLowerCase()) ||
+          vendor.description.toLowerCase().contains(searchQuery.toLowerCase());
+      final matchesLocation = location == 'all' || vendor.location.contains(location);
+      final matchesService = widget.serviceType == null || vendor.serviceType == widget.serviceType;
+      // For budget, map priceRange to numbers
+      final priceValue = _getPriceValue(vendor.priceRange);
+      final matchesBudget = priceValue <= budget;
+      return matchesSearch && matchesLocation && matchesService && matchesBudget;
+    }).toList();
+  }
+
+  int _getPriceValue(String priceRange) {
+    const Map<String, int> prices = {
+      "$": 1000,
+      "$$": 5000,
+      "$$$": 15000,
+      "$$$$": 50000,
+    };
+    return prices[priceRange] ?? 10000;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('${widget.serviceType ?? 'All'} Vendors'),
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          children: [
+            // Filters
+            Column(
+              children: [
+                // Search
+                TextField(
+                  decoration: const InputDecoration(
+                    hintText: 'Search vendors...',
+                    prefixIcon: Icon(Icons.search),
+                    border: OutlineInputBorder(),
+                  ),
+                  onChanged: (value) {
+                    setState(() {
+                      searchQuery = value;
+                    });
+                  },
+                ),
+                const SizedBox(height: 16),
+                // Location
+                DropdownButtonFormField<String>(
+                  value: location,
+                  decoration: const InputDecoration(
+                    labelText: 'Location',
+                    border: OutlineInputBorder(),
+                  ),
+                  items: const [
+                    DropdownMenuItem(value: 'all', child: Text('All Locations')),
+                    DropdownMenuItem(value: 'Nasr City', child: Text('Nasr City')),
+                    DropdownMenuItem(value: 'New Cairo', child: Text('New Cairo')),
+                    DropdownMenuItem(value: 'Maadi', child: Text('Maadi')),
+                    DropdownMenuItem(value: 'Sheikh Zayed', child: Text('Sheikh Zayed')),
+                  ],
+                  onChanged: (value) {
+                    setState(() {
+                      location = value!;
+                    });
+                  },
+                ),
+                const SizedBox(height: 16),
+                // Budget
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Budget: ${budget.toInt()} EGP'),
+                    Slider(
+                      value: budget,
+                      min: 500,
+                      max: 50000,
+                      divisions: 99,
+                      onChanged: (value) {
+                        setState(() {
+                          budget = value;
+                        });
+                      },
+                    ),
+                  ],
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            // Results count
+            Text(
+              'Found ${filteredVendors.length} ${widget.serviceType ?? 'vendor'} vendors',
+              style: const TextStyle(color: Colors.grey),
+            ),
+            const SizedBox(height: 16),
+            // Vendor list
+            Expanded(
+              child: ListView.builder(
+                itemCount: filteredVendors.length,
+                itemBuilder: (context, index) {
+                  final vendor = filteredVendors[index];
+                  return Card(
+                    margin: const EdgeInsets.only(bottom: 16),
+                    child: InkWell(
+                      onTap: () {
+                        // Navigate to vendor detail
+                        // Navigator.push(context, MaterialPageRoute(builder: (context) => VendorDetail(vendor: vendor)));
+                      },
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Image
+                          AspectRatio(
+                            aspectRatio: 16 / 9,
+                            child: Image.network(
+                              vendor.image,
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) {
+                                return Container(
+                                  color: Colors.grey[300],
+                                  child: const Icon(Icons.image, size: 50),
+                                );
+                              },
+                            ),
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.all(16),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                // Name and rating
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: Text(
+                                        vendor.name,
+                                        style: const TextStyle(
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                      decoration: BoxDecoration(
+                                        color: Colors.amber[100],
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: Row(
+                                        children: [
+                                          const Icon(Icons.star, size: 16, color: Colors.amber),
+                                          const SizedBox(width: 4),
+                                          Text('${vendor.rating}'),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 8),
+                                // Location
+                                Row(
+                                  children: [
+                                    const Icon(Icons.location_on, size: 16, color: Colors.grey),
+                                    const SizedBox(width: 4),
+                                    Text(vendor.location, style: const TextStyle(color: Colors.grey)),
+                                  ],
+                                ),
+                                const SizedBox(height: 8),
+                                // Description
+                                Text(
+                                  vendor.description,
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(color: Colors.grey),
+                                ),
+                                const SizedBox(height: 12),
+                                // Price and reviews
+                                Row(
+                                  children: [
+                                    Row(
+                                      children: [
+                                        const Icon(Icons.attach_money, size: 16, color: Colors.grey),
+                                        Text(vendor.priceRange),
+                                      ],
+                                    ),
+                                    const Spacer(),
+                                    Text('${vendor.reviews} reviews', style: const TextStyle(color: Colors.grey)),
+                                  ],
+                                ),
+                                const SizedBox(height: 12),
+                                // Tags
+                                Wrap(
+                                  spacing: 8,
+                                  children: vendor.tags.take(3).map((tag) {
+                                    return Chip(
+                                      label: Text(tag),
+                                      backgroundColor: Colors.grey[200],
+                                      labelStyle: const TextStyle(fontSize: 12),
+                                    );
+                                  }).toList(),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
